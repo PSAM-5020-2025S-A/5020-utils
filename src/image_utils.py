@@ -115,7 +115,7 @@ def make_image(pxs, width=None, height=None):
   mimg.crop = crop_image(mimg)
   return mimg
 
-## Image Analyssis
+## Image Analysis
 
 def constrain_uint8(v):
   return int(min(max(v, 0), 255))
