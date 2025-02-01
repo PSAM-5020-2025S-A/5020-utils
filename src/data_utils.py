@@ -28,22 +28,29 @@ def object_from_json_url(url):
     return json.load(in_file)
 
 
+def isDataFrame(X):
+  return isinstance(X, pd.core.frame.DataFrame)
+
+def isSeries(X):
+  return isinstance(X, pd.core.series.Series)
+
+
 def regression_error(labels, predicted):
-  if not (isinstance(labels, pd.core.frame.DataFrame) or isinstance(labels, pd.core.series.Series)):
+  if not (isDataFrame(labels) or isSeries(labels)):
     raise Exception("truth labels has wrong type. Please use pandas DataFrame or Series")
-  if not (isinstance(predicted, pd.core.frame.DataFrame) or isinstance(predicted, pd.core.series.Series)):
+  if not (isDataFrame(predicted) or isSeries(predicted)):
     raise Exception("predicted labels has wrong type. Please use pandas DataFrame or Series")
 
   return root_mean_squared_error(labels.values, predicted.values)
 
 
 def classification_error(labels, predicted):
-  if not (isinstance(labels, pd.core.frame.DataFrame) or isinstance(labels, pd.core.series.Series)):
+  if not (isDataFrame(labels) or isSeries(labels)):
     try:
       labels = pd.DataFrame(labels)
     except:
       raise Exception("truth labels has wrong type. Please use pandas DataFrame or Series")
-  if not (isinstance(predicted, pd.core.frame.DataFrame) or isinstance(predicted, pd.core.series.Series)):
+  if not (isDataFrame(predicted) or isSeries(predicted)):
     try:
       predicted = pd.DataFrame(predicted)
     except:
@@ -62,7 +69,7 @@ class PolynomialFeatures(SklPolynomialFeatures):
     super().__init__(**kwargs)
 
   def fit_transform(self, X, *args, **kwargs):
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Feature input has wrong type. Please use pandas DataFrame")
 
     self.columns = X.columns
@@ -74,7 +81,7 @@ class PolynomialFeatures(SklPolynomialFeatures):
     if type(X) == np.ndarray:
       return super().transform(X, *args, **kwargs)
 
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Feature input has wrong type. Please use pandas DataFrame")
     if list(self.columns) != list(X.columns) or self.shape[1] != X.shape[1]:
       raise Exception("Input has wrong shape.")
@@ -97,9 +104,9 @@ class Predictor():
       self.model = SklSVC(**kwargs)
 
   def fit(self, X, y, *args, **kwargs):
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Feature input has wrong type. Please use pandas DataFrame")
-    if not (isinstance(y, pd.core.frame.DataFrame) or isinstance(y, pd.core.series.Series)):
+    if not (isDataFrame(y) or isSeries(y)):
       raise Exception("Label input has wrong type. Please use pandas DataFrame or Series")
 
     self.y_name = [y.name] if len(y.shape) == 1 else y.columns.values
@@ -107,7 +114,7 @@ class Predictor():
     return self
 
   def predict(self, X, *args, **kwargs):
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Feature input has wrong type. Please use pandas DataFrame")
     y_t = self.model.predict(X.values, *args, **kwargs)
     return pd.DataFrame(y_t, columns=self.y_name)
@@ -121,7 +128,7 @@ class Scaler():
       self.scaler = SklStandardScaler(**kwargs)
 
   def fit_transform(self, X, *args, **kwargs):
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Input has wrong type. Please use pandas DataFrame")
 
     self.columns = X.columns
@@ -133,7 +140,7 @@ class Scaler():
     if type(X) == np.ndarray:
       return self.scaler.transform(X, *args, **kwargs)
 
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Input has wrong type. Please use pandas DataFrame")
     if list(self.columns) != list(X.columns) or self.shape[1] != X.shape[1]:
       raise Exception("Input has wrong shape.")
@@ -142,7 +149,7 @@ class Scaler():
     return pd.DataFrame(X_t, columns=X.columns)
 
   def inverse_transform(self, X, *args, **kwargs):
-    if not (isinstance(X, pd.core.frame.DataFrame) or isinstance(X, pd.core.series.Series)):
+    if not (isDataFrame(X) or isSeries(X)):
       raise Exception("Input has wrong type. Please use pandas DataFrame or Series")
 
     col = ""
@@ -186,7 +193,7 @@ class Clusterer():
       self.model = SklSpectralClustering(**kwargs)
 
   def fit_predict(self, X, *args, **kwargs):
-    if not isinstance(X, pd.core.frame.DataFrame):
+    if not isDataFrame(X):
       raise Exception("Input has wrong type. Please use pandas DataFrame")
 
     y = self.model.fit_predict(X.values, *args, **kwargs)
@@ -245,7 +252,7 @@ class PCA(SklPCA):
     self.o_labels = None
 
   def check_input(self, X):
-    if isinstance(X, pd.core.frame.DataFrame):
+    if isDataFrame(X):
       self.o_labels = X.columns
       X = X.values.tolist()
     if not isinstance(X, list):
@@ -272,15 +279,15 @@ class PCA(SklPCA):
     return self.transform(X, *args, **kwargs)
 
   def inverse_transform(self, X_t, *args, **kwargs):
-    if not (isinstance(X_t, pd.core.frame.DataFrame) or isinstance(X_t, pd.core.series.Series)):
+    if not (isDataFrame(X_t) or isSeries(X_t)):
       raise Exception("Input has wrong type. Please use pandas DataFrame or Series")
     if len(self.pc_labels) != self.n_components_:
       raise Exception("Error: need to run fit() first")
 
     X_t_np = X_t[self.pc_labels].values
-    if isinstance(X_t, pd.core.frame.DataFrame) and X_t_np.shape[1] != self.n_components_:
+    if isDataFrame(X_t) and X_t_np.shape[1] != self.n_components_:
       raise Exception("Input has wrong shape. Check number of features")
-    if isinstance(X_t, pd.core.series.Series) and X_t_np.shape[0] != self.n_components_:
+    if isSeries(X_t) and X_t_np.shape[0] != self.n_components_:
       raise Exception("Input has wrong shape. Check number of features")
 
     X_i_np = super().inverse_transform(X_t_np)
