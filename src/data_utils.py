@@ -259,6 +259,7 @@ class Reducer():
     elif type == "tsne":
       self.reducer = SklTSNE(**kwargs)
       self.col_pre = "TSNE"
+    self.n_components = self.reducer.n_components
 
   def check_input(self, X):
     if isDataFrame(X):
@@ -274,15 +275,16 @@ class Reducer():
     X = self.check_input(X)
     X_np = np.array(X)
     self.reducer.fit(X_np, *args, **kwargs)
-    self.t_labels = [f"{self.col_pre}{i}" for i in range(self.reducer.n_components)]
+    self.t_labels = [f"{self.col_pre}{i}" for i in range(self.n_components)]
 
   def transform(self, X, *args, **kwargs):
-    if len(self.t_labels) != self.reducer.n_components:
+    if len(self.t_labels) != self.n_components:
       raise Exception("Error: need to run fit() first")
     X = self.check_input(X)
     X_np = np.array(X)
     if hasattr(self.reducer, "transform"):
       X_t = self.reducer.transform(X_np, *args, **kwargs)
+      self.components = self.reducer.components_
     else:
       X_t = self.reducer.fit_transform(X_np, *args, **kwargs)
     X_obj = [{f"{self.col_pre}{i}": v for i,v in enumerate(x)} for x in X_t]
@@ -308,7 +310,7 @@ class Reducer():
     return pd.DataFrame(X_i_np, columns=self.o_labels)
 
   def explained_variance(self):
-    if len(self.t_labels) != self.reducer.n_components:
+    if len(self.t_labels) != self.n_components:
       raise Exception("Error: need to run fit() first")
     return sum(self.reducer.explained_variance_ratio_)
 
