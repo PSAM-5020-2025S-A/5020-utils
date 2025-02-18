@@ -14,6 +14,7 @@ from sklearn.decomposition import PCA as SklPCA
 from sklearn.ensemble import RandomForestClassifier as SklRandomForestClassifier
 from sklearn.linear_model import LinearRegression as SklLinearRegression
 from sklearn.linear_model import SGDRegressor as SklSGD
+from sklearn.manifold import TSNE as SklTSNE
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix, root_mean_squared_error
 from sklearn.mixture import GaussianMixture as SklGaussianMixture
 from sklearn.preprocessing import MinMaxScaler as SklMinMaxScaler
@@ -248,11 +249,16 @@ class Clusterer():
     return scale_factor * sum_dists
 
 
-class PCA(SklPCA):
-  def __init__(self, **kwargs):
-    super().__init__(**kwargs)
-    self.pc_labels = []
+class Reducer():
+  def __init__(self, type, **kwargs):
+    self.t_labels = []
     self.o_labels = None
+    if type == "pca":
+      self.reducer = SklPCA(**kwargs)
+      self.col_pre = "PC"
+    elif type == "tsne":
+      self.reducer = SklTSNE(**kwargs)
+      self.col_pre = "TSNE"
 
   def check_input(self, X):
     if isDataFrame(X):
@@ -266,15 +272,20 @@ class PCA(SklPCA):
 
   def fit(self, X, *args, **kwargs):
     X = self.check_input(X)
-    super().fit(X, *args, **kwargs)
-    self.pc_labels = [f"PC{i}" for i in range(self.n_components_)]
+    X_np = np.array(X)
+    self.reducer.fit(X_np, *args, **kwargs)
+    self.t_labels = [f"{self.col_pre}{i}" for i in range(self.reducer.n_components)]
 
   def transform(self, X, *args, **kwargs):
-    if len(self.pc_labels) != self.n_components_:
+    if len(self.t_labels) != self.reducer.n_components:
       raise Exception("Error: need to run fit() first")
     X = self.check_input(X)
-    X_t = super().transform(X, *args, **kwargs)
-    X_obj = [{f"PC{i}": v for i,v in enumerate(x)} for x in X_t]
+    X_np = np.array(X)
+    if hasattr(self.reducer, "transform"):
+      X_t = self.reducer.transform(X_np, *args, **kwargs)
+    else:
+      X_t = self.reducer.fit_transform(X_np, *args, **kwargs)
+    X_obj = [{f"{self.col_pre}{i}": v for i,v in enumerate(x)} for x in X_t]
     return pd.DataFrame.from_records(X_obj)
 
   def fit_transform(self, X, *args, **kwargs):
@@ -284,22 +295,22 @@ class PCA(SklPCA):
   def inverse_transform(self, X_t, *args, **kwargs):
     if not (isDataFrame(X_t) or isSeries(X_t)):
       raise Exception("Input has wrong type. Please use pandas DataFrame or Series")
-    if len(self.pc_labels) != self.n_components_:
+    if len(self.t_labels) != self.n_components:
       raise Exception("Error: need to run fit() first")
 
-    X_t_np = X_t[self.pc_labels].values
-    if isDataFrame(X_t) and X_t_np.shape[1] != self.n_components_:
+    X_t_np = X_t[self.t_labels].values
+    if isDataFrame(X_t) and X_t_np.shape[1] != self.n_components:
       raise Exception("Input has wrong shape. Check number of features")
-    if isSeries(X_t) and X_t_np.shape[0] != self.n_components_:
+    if isSeries(X_t) and X_t_np.shape[0] != self.n_components:
       raise Exception("Input has wrong shape. Check number of features")
 
-    X_i_np = super().inverse_transform(X_t_np)
+    X_i_np = self.reducer.inverse_transform(X_t_np, *args, **kwargs)
     return pd.DataFrame(X_i_np, columns=self.o_labels)
 
   def explained_variance(self):
-    if len(self.pc_labels) != self.n_components_:
+    if len(self.t_labels) != self.reducer.n_components:
       raise Exception("Error: need to run fit() first")
-    return sum(self.explained_variance_ratio_)
+    return sum(self.reducer.explained_variance_ratio_)
 
 
 class LinearRegression(Predictor):
@@ -337,6 +348,14 @@ class GaussianClustering(Clusterer):
 class SpectralClustering(Clusterer):
   def __init__(self, **kwargs):
     super().__init__("spectral", **kwargs)
+
+class PCA(Reducer):
+  def __init__(self, **kwargs):
+    super().__init__("pca", **kwargs)
+
+class TSNE(Reducer):
+  def __init__(self, **kwargs):
+    super().__init__("tsne", **kwargs)
 
 
 class LFWUtils:
