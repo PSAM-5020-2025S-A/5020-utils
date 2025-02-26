@@ -136,6 +136,9 @@ class Scaler():
     elif type == "std":
       self.scaler = SklStandardScaler(**kwargs)
 
+  def __getattr__(self, name):
+    return getattr(self.model, name)
+
   def fit_transform(self, X, *args, **kwargs):
     if not isDataFrame(X):
       raise Exception("Input has wrong type. Please use pandas DataFrame")
@@ -201,6 +204,9 @@ class Clusterer():
         kwargs["n_clusters"] += 0
       self.model = SklSpectralClustering(**kwargs)
 
+  def __getattr__(self, name):
+    return getattr(self.model, name)
+
   def fit_predict(self, X, *args, **kwargs):
     if not isDataFrame(X):
       raise Exception("Input has wrong type. Please use pandas DataFrame")
@@ -265,6 +271,9 @@ class Reducer():
       self.reducer = SklTSNE(**kwargs)
       self.col_pre = "TSNE"
     self.n_components = self.reducer.n_components
+
+  def __getattr__(self, name):
+    return getattr(self.model, name)
 
   def check_input(self, X):
     if isDataFrame(X):
