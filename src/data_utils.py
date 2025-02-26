@@ -13,7 +13,7 @@ from sklearn.cluster import KMeans as SklKMeans, SpectralClustering as SklSpectr
 from sklearn.decomposition import PCA as SklPCA
 from sklearn.ensemble import RandomForestClassifier as SklRandomForestClassifier
 from sklearn.linear_model import LinearRegression as SklLinearRegression
-from sklearn.linear_model import SGDRegressor as SklSGD
+from sklearn.linear_model import SGDRegressor as SklSGDRegressor, SGDClassifier as SklSGDClassifier
 from sklearn.manifold import TSNE as SklTSNE
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix, root_mean_squared_error
 from sklearn.mixture import GaussianMixture as SklGaussianMixture
@@ -96,8 +96,10 @@ class Predictor():
   def __init__(self, type, **kwargs):
     if type == "linear":
       self.model = SklLinearRegression(**kwargs)
-    elif type == "sgd":
-      self.model = SklSGD(**kwargs)
+    elif type == "sgdr":
+      self.model = SklSGDRegressor(**kwargs)
+    elif type == "sgdc":
+      self.model = SklSGDClassifier(**kwargs)
     elif type == "forest":
       if "max_depth" not in kwargs:
         kwargs["max_depth"] = 16
@@ -106,6 +108,9 @@ class Predictor():
       if "kernel" not in kwargs:
         kwargs["kernel"] = "linear"
       self.model = SklSVC(**kwargs)
+
+  def __getattr__(self, name):
+    return getattr(self.model, name)
 
   def fit(self, X, y, *args, **kwargs):
     if not isDataFrame(X):
@@ -319,9 +324,13 @@ class LinearRegression(Predictor):
   def __init__(self, **kwargs):
     super().__init__("linear", **kwargs)
 
-class SGD(Predictor):
+class SGDRegressor(Predictor):
   def __init__(self, **kwargs):
-    super().__init__("sgd", **kwargs)
+    super().__init__("sgdr", **kwargs)
+
+class SGDClassifier(Predictor):
+  def __init__(self, **kwargs):
+    super().__init__("sgdc", **kwargs)
 
 class RandomForestClassifier(Predictor):
   def __init__(self, **kwargs):
