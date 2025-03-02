@@ -1,4 +1,6 @@
 import json
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import PIL.Image as PImage
@@ -16,6 +18,7 @@ from sklearn.linear_model import LinearRegression as SklLinearRegression
 from sklearn.linear_model import SGDRegressor as SklSGDRegressor, SGDClassifier as SklSGDClassifier
 from sklearn.manifold import TSNE as SklTSNE
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix, root_mean_squared_error
+from sklearn.metrics import silhouette_score as skl_silhouette_score, silhouette_samples as skl_silhouette_samples
 from sklearn.mixture import GaussianMixture as SklGaussianMixture
 from sklearn.preprocessing import MinMaxScaler as SklMinMaxScaler
 from sklearn.preprocessing import StandardScaler as SklStandardScaler
@@ -219,7 +222,7 @@ class Clusterer():
     self.cluster_centers_ = np.array([self.X[self.y == c].mean(axis=0) for c in range(self.num_clusters)]).tolist()
     return pd.DataFrame(y, columns=["clusters"])
 
-  def distance_error(self):
+  def distance_score(self):
     if self.num_clusters < 1:
       raise Exception("Error: need to run fit_predict() first")
 
@@ -230,35 +233,57 @@ class Clusterer():
 
     return sum(cluster_L2) / len(cluster_L2)
 
-  def likelihood_error(self):
-    if self.num_clusters < 1:
-      raise Exception("Error: need to run fit_predict() first")
-
-    # https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Density_function
-    means = np.array([self.X[self.y == c].mean(axis=0) for c in range(self.num_clusters)])
-    covs = np.array([np.cov(self.X[self.y==c].transpose()) for c in range(self.num_clusters)])
-
-    point_means = [means[i] for i in self.y]
-    point_covs = [covs[i] for i in self.y]
-
-    two_pi_term = np.power(2 * np.pi, self.num_features)
-
-    point_density_den = [np.sqrt(two_pi_term * np_det(cov)) for cov in point_covs]
-    point_density_num = [np.exp(-0.5 * (p - m) @ np_inv(cov) @ (p - m)) for p,m,cov in zip(self.X, point_means, point_covs)]
-    point_density = np.array(point_density_num) / np.array(point_density_den)
-
-    cluster_log_like = [np.log(point_density[self.y == c]).mean() for c in range(self.num_clusters)]
-
-    return sum(cluster_log_like) / len(cluster_log_like)
-
-  def balance_error(self):
+  def balance_score(self):
     if self.num_clusters < 1:
       raise Exception("Error: need to run fit_predict() first")
     counts = np.unique(self.y, return_counts=True)[1]
     sum_dists = np.abs(counts / len(self.y) - (1 / self.num_clusters)).sum()
     scale_factor = 0.5 * self.num_clusters / (self.num_clusters - 1)
-    return scale_factor * sum_dists
+    return 1.0 - (scale_factor * sum_dists)
 
+  def silhouette_score(self):
+    if self.num_clusters < 1:
+      raise Exception("Error: need to run fit_predict() first")
+    return skl_silhouette_score(self.X, self.y)
+
+  def plot_silhouette(self):
+    sample_silhouette_values = skl_silhouette_samples(self.X, self.y)
+    silhouette_average = skl_silhouette_score(self.X, self.y)
+
+    y_lower = 10
+    for i in range(self.num_clusters):
+      ith_cluster_silhouette_values = sample_silhouette_values[self.y == i]
+      ith_cluster_silhouette_values.sort()
+
+      size_cluster_i = ith_cluster_silhouette_values.shape[0]
+      y_upper = y_lower + size_cluster_i
+
+      color = cm.nipy_spectral(float(i) / self.num_clusters)
+      plt.fill_betweenx(
+        np.arange(y_lower, y_upper),
+        0,
+        ith_cluster_silhouette_values,
+        facecolor=color,
+        edgecolor=color,
+        alpha=0.7,
+      )
+
+      # Label the silhouette plots with their cluster numbers at the middle
+      plt.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
+
+      # Compute the new y_lower for next plot
+      y_lower = y_upper + 10
+
+    plt.title("Silhouette Plot")
+    plt.xlabel("Silhouette coefficient values")
+    plt.ylabel("Cluster label")
+
+    # The vertical line for average silhouette score of all the values
+    plt.axvline(x=silhouette_average, color="red", linestyle="--")
+
+    plt.yticks([])
+    plt.xticks([-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1])
+    plt.show()
 
 class Reducer():
   def __init__(self, type, **kwargs):
