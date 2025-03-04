@@ -64,6 +64,20 @@ def classification_error(labels, predicted):
   return 1.0 - accuracy_score(labels.values, predicted.values)
 
 
+def accuracy_score_proba(labels, probs, k=1):
+  sorted_idxs = probs.argsort(axis=1)
+  if type(k) is int:
+    pred_k = sorted_idxs[:, -k:]
+  else:
+    pred_k = [[idx for idx in idxs if probs[pi, idx] > k] for pi,idxs in enumerate(sorted_idxs)]
+
+  sum = 0
+  for l,p in zip(labels, pred_k):
+    sum += l in p
+
+  return sum / len(labels)
+
+
 def display_confusion_matrix(labels, predicted, display_labels):
   simplefilter(action='ignore', category=FutureWarning)
   ConfusionMatrixDisplay.from_predictions(labels, predicted, display_labels=display_labels, xticks_rotation="vertical")
