@@ -15,6 +15,7 @@ from sklearn.cluster import KMeans as SklKMeans, SpectralClustering as SklSpectr
 from sklearn.decomposition import PCA as SklPCA
 from sklearn.ensemble import RandomForestClassifier as SklRandomForestClassifier
 from sklearn.linear_model import LinearRegression as SklLinearRegression
+from sklearn.linear_model import LogisticRegression as SklLogisticRegression
 from sklearn.linear_model import SGDRegressor as SklSGDRegressor, SGDClassifier as SklSGDClassifier
 from sklearn.manifold import TSNE as SklTSNE
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix, root_mean_squared_error
@@ -113,6 +114,8 @@ class Predictor():
   def __init__(self, type, **kwargs):
     if type == "linear":
       self.model = SklLinearRegression(**kwargs)
+    elif type == "logistic":
+      self.model = SklLogisticRegression(**kwargs)
     elif type == "sgdr":
       self.model = SklSGDRegressor(**kwargs)
     elif type == "sgdc":
@@ -371,6 +374,10 @@ class Reducer():
 class LinearRegression(Predictor):
   def __init__(self, **kwargs):
     super().__init__("linear", **kwargs)
+
+class LogisticRegression(Predictor):
+  def __init__(self, **kwargs):
+    super().__init__("logistic", **kwargs)
 
 class SGDRegressor(Predictor):
   def __init__(self, **kwargs):
