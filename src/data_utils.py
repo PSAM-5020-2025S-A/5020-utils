@@ -83,6 +83,48 @@ def display_confusion_matrix(labels, predicted, display_labels):
   simplefilter(action='ignore', category=FutureWarning)
   ConfusionMatrixDisplay.from_predictions(labels, predicted, display_labels=display_labels, xticks_rotation="vertical")
 
+def display_silhouette_plots(X, y):
+  sample_silhouette_values = skl_silhouette_samples(X, y)
+  silhouette_average = skl_silhouette_score(X, y)
+  num_clusters = len(np.unique(y))
+  maxx = round(sample_silhouette_values.max() / 0.2) * 0.2
+
+  y_lower = 10
+  for i in range(num_clusters):
+    ith_cluster_silhouette_values = sample_silhouette_values[y == i]
+    ith_cluster_silhouette_values.sort()
+
+    size_cluster_i = ith_cluster_silhouette_values.shape[0]
+    y_upper = y_lower + size_cluster_i
+
+    color = cm.nipy_spectral(float(i) / num_clusters)
+    plt.fill_betweenx(
+      np.arange(y_lower, y_upper),
+      0,
+      ith_cluster_silhouette_values,
+      facecolor=color,
+      edgecolor=color,
+      alpha=0.7,
+    )
+
+    # Label the silhouette plots with their cluster numbers at the middle
+    plt.text(-maxx / 10, y_lower + 0.5 * size_cluster_i, str(i))
+
+    # Compute the new y_lower for next plot
+    y_lower = y_upper + 10
+
+  plt.title("Silhouette Plot")
+  plt.xlabel("Silhouette coefficient values")
+  plt.ylabel("Cluster label")
+
+  # The vertical line for average silhouette score of all the values
+  plt.axvline(x=silhouette_average, color="red", linestyle="--")
+
+  plt.yticks([])
+  plt.xlim([min(-0.1, sample_silhouette_values.min()), sample_silhouette_values.max()])
+  plt.xticks([-0.1] + list(np.arange(0, maxx+0.1, 0.2)))
+  plt.show()
+
 
 class PolynomialFeatures(SklPolynomialFeatures):
   def __init__(self, **kwargs):
@@ -264,43 +306,8 @@ class Clusterer():
     return skl_silhouette_score(self.X, self.y)
 
   def plot_silhouette(self):
-    sample_silhouette_values = skl_silhouette_samples(self.X, self.y)
-    silhouette_average = skl_silhouette_score(self.X, self.y)
+    display_silhouette_plots(self.X, self.y)
 
-    y_lower = 10
-    for i in range(self.num_clusters):
-      ith_cluster_silhouette_values = sample_silhouette_values[self.y == i]
-      ith_cluster_silhouette_values.sort()
-
-      size_cluster_i = ith_cluster_silhouette_values.shape[0]
-      y_upper = y_lower + size_cluster_i
-
-      color = cm.nipy_spectral(float(i) / self.num_clusters)
-      plt.fill_betweenx(
-        np.arange(y_lower, y_upper),
-        0,
-        ith_cluster_silhouette_values,
-        facecolor=color,
-        edgecolor=color,
-        alpha=0.7,
-      )
-
-      # Label the silhouette plots with their cluster numbers at the middle
-      plt.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
-
-      # Compute the new y_lower for next plot
-      y_lower = y_upper + 10
-
-    plt.title("Silhouette Plot")
-    plt.xlabel("Silhouette coefficient values")
-    plt.ylabel("Cluster label")
-
-    # The vertical line for average silhouette score of all the values
-    plt.axvline(x=silhouette_average, color="red", linestyle="--")
-
-    plt.yticks([])
-    plt.xticks([-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1])
-    plt.show()
 
 class Reducer():
   def __init__(self, type, **kwargs):
