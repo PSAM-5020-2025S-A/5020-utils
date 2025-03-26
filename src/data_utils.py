@@ -199,7 +199,7 @@ class Scaler():
       self.scaler = SklStandardScaler(**kwargs)
 
   def __getattr__(self, name):
-    return getattr(self.model, name)
+    return getattr(self.scaler, name)
 
   def fit_transform(self, X, *args, **kwargs):
     if not isDataFrame(X):
@@ -322,7 +322,7 @@ class Reducer():
     self.n_components = self.reducer.n_components
 
   def __getattr__(self, name):
-    return getattr(self.model, name)
+    return getattr(self.reducer, name)
 
   def check_input(self, X):
     if isDataFrame(X):
@@ -334,14 +334,19 @@ class Reducer():
       raise Exception("Input has wrong type. Please use list of list of pixels")
     return X
 
+  def has_fitted(self):
+    return len(self.t_labels) == self.n_components or len(self.t_labels) == self.reducer.n_components_
+
   def fit(self, X, *args, **kwargs):
     X = self.check_input(X)
     X_np = np.array(X)
     self.reducer.fit(X_np, *args, **kwargs)
-    self.t_labels = [f"{self.col_pre}{i}" for i in range(self.n_components)]
+
+    n_components = self.n_components if type(self.n_components) == int else self.reducer.n_components_
+    self.t_labels = [f"{self.col_pre}{i}" for i in range(n_components)]
 
   def transform(self, X, *args, **kwargs):
-    if len(self.t_labels) != self.n_components:
+    if not self.has_fitted():
       raise Exception("Error: need to run fit() first")
     X = self.check_input(X)
     X_np = np.array(X)
@@ -360,7 +365,7 @@ class Reducer():
   def inverse_transform(self, X_t, *args, **kwargs):
     if not (isDataFrame(X_t) or isSeries(X_t)):
       raise Exception("Input has wrong type. Please use pandas DataFrame or Series")
-    if len(self.t_labels) != self.n_components:
+    if not self.has_fitted():
       raise Exception("Error: need to run fit() first")
 
     X_t_np = X_t[self.t_labels].values
@@ -373,7 +378,7 @@ class Reducer():
     return pd.DataFrame(X_i_np, columns=self.o_labels)
 
   def explained_variance(self):
-    if len(self.t_labels) != self.n_components:
+    if not self.has_fitted():
       raise Exception("Error: need to run fit() first")
     return sum(self.reducer.explained_variance_ratio_)
 
