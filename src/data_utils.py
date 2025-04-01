@@ -339,8 +339,8 @@ class Reducer():
     X_np = np.array(X)
     self.reducer.fit(X_np, *args, **kwargs)
 
-    n_components = self.n_components if type(self.n_components) == int else self.reducer.n_components_
-    self.t_labels = [f"{self.col_pre}{i}" for i in range(n_components)]
+    self.n_components = self.n_components if type(self.n_components) == int else self.reducer.n_components_
+    self.t_labels = [f"{self.col_pre}{i}" for i in range(self.n_components)]
 
   def transform(self, X, *args, **kwargs):
     if not self.has_fitted():
