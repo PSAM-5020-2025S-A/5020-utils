@@ -474,6 +474,9 @@ class LFWUtils:
           dataset[split]["pixels"].append(img.pixels)
           dataset[split]["labels"].append(LFWUtils.L2I[label])
           dataset[split]["files"].append(f)
+          LFWUtils.IMAGE_SIZE = img.size
+          LFWUtils.IMAGE_WIDTH = img.size[0]
+          LFWUtils.IMAGE_HEIGHT = img.size[1]
 
     return dataset["train"], dataset["test"]
 
