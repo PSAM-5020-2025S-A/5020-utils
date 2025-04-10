@@ -24,7 +24,7 @@ from sklearn.mixture import GaussianMixture as SklGaussianMixture
 from sklearn.preprocessing import MinMaxScaler as SklMinMaxScaler
 from sklearn.preprocessing import StandardScaler as SklStandardScaler
 from sklearn.preprocessing import PolynomialFeatures as SklPolynomialFeatures
-from sklearn.svm import SVC as SklSVC
+from sklearn.svm import SVC as SklSVC, LinearSVC as SklLSVC
 
 from warnings import simplefilter
 
@@ -164,9 +164,9 @@ class Predictor():
         kwargs["max_depth"] = 16
       self.model = SklRandomForestClassifier(**kwargs)
     elif type == "svc":
-      if "kernel" not in kwargs:
-        kwargs["kernel"] = "linear"
       self.model = SklSVC(**kwargs)
+    elif type == "lsvc":
+      self.model = SklLSVC(**kwargs)
 
   def __getattr__(self, name):
     return getattr(self.model, name)
@@ -403,6 +403,10 @@ class RandomForestClassifier(Predictor):
 class SVC(Predictor):
   def __init__(self, **kwargs):
     super().__init__("svc", **kwargs)
+
+class LinearSVC(Predictor):
+  def __init__(self, **kwargs):
+    super().__init__("lsvc", **kwargs)
 
 class MinMaxScaler(Scaler):
   def __init__(self, **kwargs):
