@@ -9,3 +9,8 @@ def get_labels(model, inputs):
   with torch.no_grad():
     y_pred = model(inputs).argmax(dim=1)
     return [l.item() for l in y_pred]
+
+def NormalizeMinMax(min=0.0, max=1.0):
+  def mmn(t):
+    return (t - t.min()) / (t.max() - t.min()) * (max - min) + min
+  return mmn
